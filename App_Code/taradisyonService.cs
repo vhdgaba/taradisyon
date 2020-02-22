@@ -144,8 +144,9 @@ namespace Taradisyon
                         data.Add(user);
                     }
             }
-            conntection.Close()
+            connection.Close()
         }
+        return data;
     }
 
     public List<Challenge> GetChallengeByAdministrator()
@@ -181,6 +182,7 @@ namespace Taradisyon
             }
             connection.Close();
         }
+        return challenge;
     }
 
     public List<Challenge> GetChallengeByLocationCategory(string CategoryID, string LocationID)
@@ -217,6 +219,7 @@ namespace Taradisyon
             }
             connection.Close();
         }
+        return challenge;
     }
 }
 
