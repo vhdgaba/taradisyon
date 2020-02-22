@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.Text;
 
+
 namespace Taradisyon
 {
     // NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service" in code, svc and config file together.
@@ -17,137 +18,196 @@ namespace Taradisyon
         {
         }
 
-        // Code for logging in user.
-        // Returns true if login successful, false if account not found.
         public bool Login(string EmailAddress, string Password)
         {
             string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+
+            string query = "SELECT ID, EmailAddress, Password" +
+                "FROM dbo.User" +
+                "WHERE EmailAddress = @Email AND Password = @Password";
+
             using (SqlConnection connection = new SqlConnection(connectionString))
-
-                try
+            {
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.Add("Email", SqlDbType.Varchar, 30).Value = EmailAddress;
+                command.Parameters.Add("Password", SqlDbType.Char, 64).Value = Password;
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    if (connection.State == ConnectionState.Closed)
-                        connection.Open();
-
-                    List<User> data = new List<User>();
-                    string query = "SELECT ID, EmailAddress, Password" +
-                        "FROM dbo.User" +
-                        "WHERE EmailAddress = @email AND Password = @password";
-
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.Add("@email", SqlDbType.Text).Value = EmailAddress;
-                    command.Parameters.Add("@password", SqlDbType.Text).Value = Password;
-                    using (SqlDataReader reader = command.ExecuteReader())
-                        while (reader.Read())
-                        {
-                            User input = new User();
-                            input.ID = reader.GetInt32(0);
-                            input.EmailAddress = reader.GetString(1);
-                            input.Password = reader.GetString(2);
-                            data.Add(input);
-                        }
-                    
-                    // Query ID and Password using Email, if results found, set to User item and add to query List
-
-                    if (data.Count() != 0)
+                    while (reader.Read())
                     {
-                        return true;
+                        user.UserID = reader.GetInt32(0);
                     }
-                    return false;
                 }
-                catch
+                if (reader.HasRows)
                 {
-                    return false;
+                    return true;
                 }
-                finally
+                else
                 {
                     connection.Close();
-                }
-        }
+                    connection.Open();
+                    query = "SELECT ID, EmailAddress, Password" +
+                    "FROM dbo.Administrator" +
+                    "WHERE EmailAddress = @Email AND Password = @Password";
 
-        // Code for signing up.
-        // Returns true for successful account creation, false otherwise
-        public bool SignUp(string FirstName, string LastName, char Gender, string EmailAddress, string Password, DateTime Birthdate, string Nationality, int Point)
-        {
-            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
-            using (SqlConnection connection = new SqlConnection(connectionString))
-
-                try
-                {
-                    if (connection.State == ConnectionState.Closed)
-                        connection.Open();
-
-                    // Query for existing entry using Email, store in query
-                    string query = "SELECT *" +
-                        "FROM dbo.User" +
-                        "WHERE EmailAddress = @email";
-
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.Add("@email", SqlDbType.Text).Value = EmailAddress;
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (SqlConnection connection = new SqlConnection(connectionString))
                     {
-                        if (reader.HasRows)
-                            return false;
-                        else
-                        {
-                            query = "INSERT INTO dbo.User (LastName, FirstName, Gender, EmailAddress, Password, Birthdate, Nationality, Points)" +
-                                "VALUES (@fname, @lname, @gender, @email, @password, @bday, @nationality, 0)";
-
-                            command = new SqlCommand(query, connection);
-                            command.Parameters.Add("@fname", SqlDbType.Text).Value = FirstName;
-                            command.Parameters.Add("@lname", SqlDbType.Text).Value = LastName;
-                            command.Parameters.Add("@gender", SqlDbType.Char).Value = Gender;
-                            command.Parameters.Add("@email", SqlDbType.Text).Value = EmailAddress;
-                            command.Parameters.Add("@password", SqlDbType.Text).Value = Password;
-                            command.Parameters.Add("@bday", SqlDbType.Date).Value = Birthdate;
-                            command.Parameters.Add("@nationality", SqlDbType.Text).Value = Nationality;
-                        }
-
-                        return false;
-                    }
-                }
-                catch
-                {
-                    return false;
-                }
-        }
-
-        public void GetUserData(int ID)
-        {
-            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
-            using (SqlConnection connection = new SqlConnection(connectionString))
-
-                try
-                {
-                    if (connection.State == ConnectionState.Closed)
+                        SqlCommand command = new SqlCommand(query, connection);
+                        command.Parameters.Add("Email", SqlDbType.Varchar, 30).Value = EmailAddress;
+                        command.Parameters.Add("Password", SqlDbType.Char, 64).Value = Password;
                         connection.Open();
-
-                    string query = "SELECT *" +
-                        "FROM dbo.User" +
-                        "WHERE ID = @id";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.Add("@id", SqlDbType.Int).Value = ID;
                         using (SqlDataReader reader = command.ExecuteReader())
                             while (reader.Read())
                             {
-                                User input = new User();
-                                input.ID = reader.GetInt32(0);
-                                input.FirstName = reader.GetString(1);
-                                input.LastName = reader.GetString(2);
-                                input.Gender = reader.GetChar(3);
-                                input.EmailAddress = reader.GetString(4);
-                                input.Password = reader.GetString(5);
-                                input.BirthDate = reader.GetDateTime(6);
-                                input.Nationality = reader.GetString(7);
-                                input.Point = reader.GetInt32(8);
+                                admin.UserID = reader.GetInt32(0);
                             }
+                        if (reader.HasRows)
+                        {
+                            return true;
+                        }
+                        connection.Close();
                     }
+                    return false;
                 }
-                catch
+            }
+        }
+
+        public bool SignUp(string EmailAddress)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+            string query = "SELECT *" +
+                    "FROM dbo.User" +
+                    "WHERE EmailAddress = @Email";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.Add("@Email", SqlDbType.Varchar, 30).Value = EmailAddress;
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
+                    if (reader.HasRows)
+                        return false;
+                    else
+                    {
+                        query = "INSERT INTO dbo.User (LastName, FirstName, Gender, EmailAddress, Password, Birthdate, Nationality, Points)" +
+                            "VALUES (@FirstName, @LastName, @Gender, @Email, @Password, @Birthdate, @NationalityID, @Point)";
+
+                        command = new SqlCommand(query, connection);
+                        command.Parameters.Add("@FirstName", SqlDbType.Varchar, 20).Value = FirstName;
+                        command.Parameters.Add("@LastName", SqlDbType.Varchar, 20).Value = LastName;
+                        command.Parameters.Add("@Gender", SqlDbType.Char).Value = Gender;
+                        command.Parameters.Add("@EmailAddress", SqlDbType.Varchar, 30).Value = EmailAddress;
+                        command.Parameters.Add("@Password", SqlDbType.Char, 64).Value = Password;
+                        command.Parameters.Add("@Birthdate", SqlDbType.Date).Value = Birthdate;
+                        command.Parameters.Add("@NationalityID", SqlDbType.Int).Value = Nationality;
+                        command.Parameters.Add("@Point", SqlDbType.Int).Value = 0;
+                        command.Execute.Nonquery();
+                        connection.Close();
+                    }
+                    return false;
                 }
+            }
+        }
+    }
+
+    public List<string> GetUserData()
+    {
+        List<string> data = new List<string>();
+        string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = "SELECT *" +
+                "FROM dbo.User" +
+                "WHERE ID = @ID";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@ID", SqlDbType.Int).Value = user.ID;
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                    while (reader.Read())
+                    {
+                        User user = new User();
+                        user.ID = reader.GetInt32(0);
+                        user.FirstName = reader.GetString(1);
+                        user.LastName = reader.GetString(2);
+                        user.Gender = reader.GetChar(3);
+                        user.EmailAddress = reader.GetString(4);
+                        user.Password = reader.GetString(5);
+                        user.BirthDate = reader.GetDateTime(6);
+                        user.Nationality = reader.GetString(7);
+                        user.Point = reader.GetInt32(8);
+                        data.Add(user);
+                    }
+            }
+        }
+    }
+
+    public List<Challenge> GetChallengeByAdministrator()
+    {
+        List<Challenge> challenge = new List<Challenge>();
+        string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = "SELECT *" +
+                "FROM dbo.Challenge" +
+                "WHERE AdministratorID = @AdministratorID";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@AdministratorID", SqlDbType.Int).Value = admin.ID;
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                    while (reader.Read())
+                    {
+                        Challenge dare = new Challenge();
+                        dare.ID = reader.GetInt32(0);
+                        dare.Title = reader.GetString(1);
+                        dare.Description = reader.GetString(2);
+                        dare.CategoryID = reader.GetInt32(3);
+                        dare.LocationID = reader.GetInt32(4);
+                        dare.AdministratorID = reader.GetInt32(5);
+                        dare.Emblem = reader.GetDateString(6);
+                        dare.Point = reader.GetInt32(7);
+                        dare.Picture = reader.GetString(8);
+                        challenge.Add(dare);
+                    }
+            }
+        }
+    }
+
+    public List<Challenge> GetChallengeByLocationCategory(string CategoryID, string LocationID)
+    {
+        List<Challenge> challenge = new List<Challenge>();
+        string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = "SELECT *" +
+                "FROM dbo.Challenge" +
+                "WHERE LocationID = @LocationID AND CategoryID = @CategoryID";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@CategoryID", SqlDbType.Int).Value = CategoryID;
+                command.Parameters.Add("@LocationID", SqlDbType.Int).Value = LocationID;
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                    while (reader.Read())
+                    {
+                        Challenge dare = new Challenge();
+                        dare.ID = reader.GetInt32(0);
+                        dare.Title = reader.GetString(1);
+                        dare.Description = reader.GetString(2);
+                        dare.CategoryID = reader.GetInt32(3);
+                        dare.LocationID = reader.GetInt32(4);
+                        dare.AdministratorID = reader.GetInt32(5);
+                        dare.Emblem = reader.GetDateString(6);
+                        dare.Point = reader.GetInt32(7);
+                        dare.Picture = reader.GetString(8);
+                        challenge.Add(dare);
+                    }
+            }
         }
     }
 }
