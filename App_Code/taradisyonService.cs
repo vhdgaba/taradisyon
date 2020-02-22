@@ -46,17 +46,17 @@ namespace Taradisyon
                 else
                 {
                     connection.Close();
-                    connection.Open();
+                    
                     query = "SELECT ID, EmailAddress, Password" +
                     "FROM dbo.Administrator" +
                     "WHERE EmailAddress = @Email AND Password = @Password";
-
+        
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
+                        connection.Open();
                         SqlCommand command = new SqlCommand(query, connection);
                         command.Parameters.Add("Email", SqlDbType.Varchar, 30).Value = EmailAddress;
                         command.Parameters.Add("Password", SqlDbType.Char, 64).Value = Password;
-                        connection.Open();
                         using (SqlDataReader reader = command.ExecuteReader())
                             while (reader.Read())
                             {
@@ -82,6 +82,7 @@ namespace Taradisyon
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
+                connection.Open();
                 SqlCommand command = new SqlCommand(query, connection);
                 command.Parameters.Add("@Email", SqlDbType.Varchar, 30).Value = EmailAddress;
                 using (SqlDataReader reader = command.ExecuteReader())
@@ -90,9 +91,11 @@ namespace Taradisyon
                         return false;
                     else
                     {
+                        connection.Close();
                         query = "INSERT INTO dbo.User (LastName, FirstName, Gender, EmailAddress, Password, Birthdate, Nationality, Points)" +
                             "VALUES (@FirstName, @LastName, @Gender, @Email, @Password, @Birthdate, @NationalityID, @Point)";
-
+                        
+                        connection.Open();
                         command = new SqlCommand(query, connection);
                         command.Parameters.Add("@FirstName", SqlDbType.Varchar, 20).Value = FirstName;
                         command.Parameters.Add("@LastName", SqlDbType.Varchar, 20).Value = LastName;
@@ -111,7 +114,7 @@ namespace Taradisyon
         }
     }
 
-    public List<string> GetUserData()
+    public List<string> GetUserData(string UserID)
     {
         List<string> data = new List<string>();
         string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
@@ -121,10 +124,10 @@ namespace Taradisyon
                 "FROM dbo.User" +
                 "WHERE ID = @ID";
 
+            connection.Open();
             using (SqlCommand command = new SqlCommand(query, connection))
             {
-                command.Parameters.Add("@ID", SqlDbType.Int).Value = user.ID;
-                connection.Open();
+                command.Parameters.Add("@ID", SqlDbType.Int).Value = UserID;
                 using (SqlDataReader reader = command.ExecuteReader())
                     while (reader.Read())
                     {
@@ -141,6 +144,7 @@ namespace Taradisyon
                         data.Add(user);
                     }
             }
+            conntection.Close()
         }
     }
 
@@ -154,10 +158,11 @@ namespace Taradisyon
                 "FROM dbo.Challenge" +
                 "WHERE AdministratorID = @AdministratorID";
 
+            connection.Open();
             using (SqlCommand command = new SqlCommand(query, connection))
             {
                 command.Parameters.Add("@AdministratorID", SqlDbType.Int).Value = admin.ID;
-                connection.Open();
+                
                 using (SqlDataReader reader = command.ExecuteReader())
                     while (reader.Read())
                     {
@@ -174,6 +179,7 @@ namespace Taradisyon
                         challenge.Add(dare);
                     }
             }
+            connection.Close();
         }
     }
 
@@ -187,11 +193,12 @@ namespace Taradisyon
                 "FROM dbo.Challenge" +
                 "WHERE LocationID = @LocationID AND CategoryID = @CategoryID";
 
+            connection.Open();
             using (SqlCommand command = new SqlCommand(query, connection))
             {
                 command.Parameters.Add("@CategoryID", SqlDbType.Int).Value = CategoryID;
                 command.Parameters.Add("@LocationID", SqlDbType.Int).Value = LocationID;
-                connection.Open();
+                
                 using (SqlDataReader reader = command.ExecuteReader())
                     while (reader.Read())
                     {
@@ -208,6 +215,7 @@ namespace Taradisyon
                         challenge.Add(dare);
                     }
             }
+            connection.Close();
         }
     }
 }
