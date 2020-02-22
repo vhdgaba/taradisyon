@@ -6,9 +6,9 @@ using System.Collections.Generic;
 
 namespace Account
 {
-    class ChallengeToken
+    class Token
     {
-        public int TokenID { get; set; }
+        public int ID { get; set; }
         public string Token { get; set; }
         public int ChallengeID { get; set; }
         public bool isClaimed { get; set; }
@@ -20,7 +20,7 @@ namespace Account
         public int ChallengeID { get; set; }
 
         // Generates token and
-        public string GenerateToken()
+        public string GenerateToken(string ChallengeID)
         {
             ChallengeToken newToken = new ChallengeToken();
             StringBuilder builder = new StringBuilder();
@@ -44,8 +44,24 @@ namespace Account
             newToken.ExpiryTime = DateTime.Now.AddMinutes(3);
 
             // Insert Token to database
-
-            return builder.ToString();
+            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO dbo.User (ChallengeID, Token, ExpirationDate, Claimed)" +
+                            "VALUES (@ChallengeID, @Token, @ExpirationDate, @Claimed)";
+                
+                connection.Open();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.Add("ChallengeID", SqlDbType.Int).Value = ChallengeID;
+                    command.Parameters.Add("Token", SqlDbType.Char, 6).Value = newToken.Token;
+                    command.Parameters.Add("ExpirationDate", SqlDbType.DateTime).Value = newToken.ExpiryTime;
+                    command.Parameters.Add("Claimed", SqlDbType.Int).Value = 0;
+                    command.Execute.Nonquery();
+                    connection.Close();
+                 }
+              }
+              return builder.ToString();
         }
     }
 
@@ -114,10 +130,27 @@ namespace Account
         }
 
         // Retrieves challenges completed by user
-        public List<string> ChallengesCompleted()
+        public List<string> ChallengesCompleted(string UserID)
         {
             List<string> done = new List<string>();
+            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "SELECT ChallengeID" +
+                    "FROM dbo.Collection" +
+                    "WHERE UserID = @UserID";
 
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.Add("@UserID", SqlDbType.Int).Value = UserID;
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                        while (reader.Read())
+                        {
+                            done.Add(reader[0]);
+                        }
+                }
+            }
             // Query for challenges done using User ID, store to done
 
             return done;
