@@ -28,10 +28,11 @@ namespace Taradisyon
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
+                connection.Open();
                 SqlCommand command = new SqlCommand(query, connection);
                 command.Parameters.Add("Email", SqlDbType.Varchar, 30).Value = EmailAddress;
                 command.Parameters.Add("Password", SqlDbType.Char, 64).Value = Password;
-                connection.Open();
+
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
