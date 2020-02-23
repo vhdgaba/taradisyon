@@ -160,29 +160,88 @@ namespace Account
         // Requires ChallengeID of challenged to be claimed by user, and challenge token (user input)
         public void ClaimToken(string ChallengeID, string Token)
         {
-            ChallengeToken query = new ChallengeToken();
+            ChallengeToken token = new ChallengeToken();
 
             // Query for TokenID using ChallengeID and Token (user input), if found, set to query.TokenID
 
-            if (query.TokenID != 0)
+            string connectionString = ConfigurationManager.ConnectionStrings["Taradisyon"].ConnectionString;
+
+            string query = "SELECT *" +
+                "FROM dbo.Token" +
+                "WHERE ChallengeID = @ChallengeID AND Token = @Token" AND Claimed = 0"
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                // Query ExpiryTime using TokenID, store to query.ExpiryTime
-
-                if (DateTime.Compare(query.ExpiryTime, DateTime.Now) >= 0 && query.isClaimed == false)
+                connection.Open();
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.Add("ChallengeID", SqlDbType.VarChar, 30).Value = ChallengeID;
+                command.Parameters.Add("Token", SqlDbType.Char, 6).Value = Token;
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    // Token is valid
+                    while (reader.Read())
+                    {
+                        token.ID = reader.GetInt32(0);
+                        token.ChallengeID = reader.GetInt32(1);
+                        token.Token = reader.GetChar(2);
+                        token.ExpiryTime = reader.GetDateTime(3);
+                        token.isClaimed = reader.GetInt32(4);
+                    }
+                    if (reader.HasRows)
+                    {
+                        // Query ExpiryTime using TokenID, store to query.ExpiryTime
+                        connection.Close();
+                        if (DateTime.Compare(token.ExpiryTime, DateTime.Now) >= 0)
+                        {
+                            // Token is valid
+                             query = "INSERT INTO Collection (UserID, ChallengeID)" +
+                                "VALUES (@UserID, @ChallengeID)";
+                            
+                            connection.Open();
+                            command = new SqlCommand(query, connection);
+                             command.Parameters.Add("UserID", SqlDbType.Int32).Value = UserID;
+                            command.Parameters.Add("ChallengeID", SqlDbType.Int32).Value = ChallengeID;
+                            command.Execute.Nonquery();
+                            connection.Close();
+                            
+                            int Reward;
+                            // Query RewardPoints using ChallengeID, store to Reward
+                            connection.Open();
+                            
+                            query = "Update Token" + 
+                                "SET Claimed = 1" + 
+                                "WHERE ID = @ID AND Token = @Token";
+                            
+                            using (SqlCommand command = new SqlCommand(query, connection)
+                                   {
+                                       
+                                   }
+                            RewardPoints += Reward;
+                            command.Parameters.Add("ID", SqlDbType.Int32).Value = token.ID; 
+                            command.Parameters.Add("Token", SqlDbType.Char, 6).Value = token.Token;
+                            command.ExecuteNonQuery();
+                            connection.Close();
+                            // Update RewardPoints of UserID
 
-                    int Reward;
-                    // Query RewardPoints using ChallengeID, store to Reward
-
-                    RewardPoints += Reward;
-
-                    // Update RewardPoints of UserID
-
-                    // Update isClaimed of TokenID to true
+                            connection.Open();
+                            
+                            query = "Update User" + 
+                                "SET Point = " + 
+                                "WHERE ID = @ID AND Point = @Point";
+                            
+                            using (SqlCommand command = new SqlCommand(query, connection)
+                                   {
+                                       
+                                   }
+                            RewardPoints += Reward;
+                            command.Parameters.Add("ID", SqlDbType.Int32).Value = token.ID; 
+                            command.Parameters.Add("Token", SqlDbType.Char, 6).Value = token.Token;
+                            command.ExecuteNonQuery();
+                            connection.Close();
+                            // Update isClaimed of TokenID to true
+                        }
+                    }
                 }
             }
-
         }
     }
 }
